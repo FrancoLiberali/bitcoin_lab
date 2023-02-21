@@ -1,0 +1,176 @@
+2.3 Interaction en ligne de commande
+Ya habia un par de bloques ahi que podemos eliminar eliminando la carpeta regtest de bob
+
+export B0HASH=203dde2bf04054023cb384939b65d1be3d5baaab067eaf88fd7c23e498d2fb15
+
+Combien de transactions contient ce bloc ?
+
+"tx": [
+    "bee7b8974d1e85e7c1ad5fd8b2bb8aaedd0f52938b7c3027f274929c62f2fac1"
+  ],
+  
+Entonces 1 transaccion
+
+Expliquer pourquoi la racine de l’arbre de Merkle a la même valeur que la hash d’une transaction.
+
+"merkleroot": "bee7b8974d1e85e7c1ad5fd8b2bb8aaedd0f52938b7c3027f274929c62f2fac1",
+  "tx": [
+    "bee7b8974d1e85e7c1ad5fd8b2bb8aaedd0f52938b7c3027f274929c62f2fac1"
+  ],
+  
+Si hay una sola transaccion obviamente el estos dos seran iguales porque no hay otro hash con el cual combinarlo
+
+
+Que constate-t-on ? Justifiez
+bob getbalance
+0.00000000
+
+el balance de bob sigue en 0, porque cuando miramos la transaccion esta es de valor 0
+bob gettransaction ${Tx0HASH}
+{
+  "amount": 0.00000000,
+  ...
+Ademas dice el tp
+Il faut donc ajouter 100 blocs afin que celle-ci soit dépensable et donc crédite le portefeuille de Bob
+si ademas hacemos getwallet info nos va a mostrar
+bob getwalletinfo
+{
+  "walletname": "wallet.dat",
+  "walletversion": 139900,
+  "balance": 0.00000000,
+  "unconfirmed_balance": 0.00000000,
+  "immature_balance": 50.00000000,
+
+bob getbalance
+50.00000000
+Ok aca esta, solo luego de crear otros 100 bloques es que se suma esta plata a Bob
+
+bob listunspent
+[
+  {
+    "txid": "bee7b8974d1e85e7c1ad5fd8b2bb8aaedd0f52938b7c3027f274929c62f2fac1",
+echo ${Tx0HASH}
+bee7b8974d1e85e7c1ad5fd8b2bb8aaedd0f52938b7c3027f274929c62f2fac1
+
+
+Que constate-t-on ?
+bob getbalance
+49.99996160
+
+algo no esta saliendo bien, 20 no es 20 bitcoins
+segun la documentacion <amount> is a real and is rounded to 8 decimal places, asi que no veo cual es el problema
+El tp dice Pour autant, la balance du compte de Bob a perdu de la valeur, mais conserve encore des bit-
+coins.
+bob listunspent
+ahora me da una lista vacia, no entiendo bien porque pero tiene sentido que tiene toda su plata
+
+Justifiez.
+Supongo que tiene sentido que esta lista este vacia porque segun la documentacion:
+ Returns array of unspent transaction inputs in the wallet. 
+Y ahora la transaccion de entrada si fue usada para algo
+Y ademas el balance sigue igual porque las dos cuentas pertenecen a la misma persona, pero la diferencia ahora supongo que es por una cuestion de apresiacion de los numeros
+Ademas creo que esta transaccion todavia no esta en ningun bloque, esa es la respuesta correcta y la razon por la cual nos dicen que despues creemos un bloque
+y la diferencia en el balance debe ser la comision de la red por realizar una tx
+
+si luego de agregar el nuevo bloque todo anda
+
+
+bob gettransaction ${C0}
+Que constate-t-on ?
+Que se mandan 50.00003840 a mspGQiWTF3SehmTsAABq1zSyj2tz6rrZUk, que es la addr de bob. Porque no 50? No tengo idea. Estos son los 50 del segundo bloque
+
+bob gettransaction ${T1}
+"fee": -0.00003840,
+ok ahi esta la comision que nos estan cobrando
+50-0.00003840 = 49.99996160 asi que todo tiene sentido
+
+bob getbalance
+99.99996160
+tiene sentido con eso, entonces no se porque la c0 dice 50.00003840, en tal caso deberia haber quedado en 100. No, porque c0 todavia no la cobro nadie, esta es la coinbase del segundo bloque que si era 50.
+
+
+
+2.4 Alice entre en jeu
+Que constate-t-on ?
+No hay ningun bloque inicialmente
+
+alice getbalance
+Que constate-t-on ?
+En ambas instancias toda la informacion es igual.
+
+Que constate-t-on ? Comment l’expliquer ?
+Solo en la de Bob podemos ver la informacion de esta transaccion, mientras que en la de alice tenemos el siguiente error:
+alice gettransaction ${Prev}
+error code: -5
+error message:
+Invalid or non-wallet transaction id
+No entiendo bien porque pasa eso, osea es verdad que esta transaccion se realizó por bob pero creo que todo el mundo deberia poder verla, si esta info esta adentro de los bloques y no deberia estar cifrada
+
+Quelle différence avec la précédente commande d’Alice ? Pourquoi ?
+ahora cuando hacemos el decoding si podemos verla desde alice
+pero sigo sin entender porque.
+
+Preguntando aca el profe me explica que si, toda la informacion de la transaccion es enviada de una red a la otra en los bloques que se comparten. Pero sobre eso tenemos otra capa de abstraccion que es la wallet, que es la que se encarga de a partir de estos bloques llevar la cuenta de los balances y eso. La wallet de alice no va a indexar que las transacciones que incluyen a alice para optimixar el espacio utilizando, por eso no sabe en que bloque esta la transaccion anterior como para irla a buscar. Por el contrario, en el segun comando le estamos dando toda la informacion de la transaccion encodeada, solo hay que desencodear esta info para mostrarla, no requiere que la trans esté indexada.
+
+
+Que constate-t-on ? Comment l’expliquer ?
+Nuevamente los dos tienen la misma informacion. Un vez que bob crea 2 bloques y pasa a tener un bloque mas que alice, al ser transmitida esta info alice va a tomar la blockchain de bob porque esta es mas larga.
+
+Comment expliquer son niveau de confirmation ?
+"confirmations": -1,
+este bloque fue anulado y ya no forma parte de la blockchain
+
+Que constate-t-on ?
+la transaccion se hace de todos modos porque se agrega al siguiente bloque que bob genera luego de la invalidacion del bloque minado por Alice.
+Pero cuando la quiero ver desde alice hay informacion de las transaccion que no me corresponden
+alice gettransaction 043c855b3fb5e0c1ed446687ee0b36f23c3fb7b00d9858bac5de73269048f727
+"category": "orphan",
+entonces es una transaccion que no pertenece a ningun bloque y esta bien en el siguiente bloque
+pregunte porque lo de porque la transaccion orphan tiene un id distinto al que a bob le mostro en la pantalla cuando la generó y el profe no supo decirme, esta muy raro eso. Ah quizas es porque al anularlo cambia su hash porque cambia su informacion interna, tiene sentido
+
+
+2.5 Charly rentre en jeu également
+
+Expliquez la balance de Charly.
+ charly getbalance
+25.00000000
+Esto se debe a que esos 25 corresponden al minado del primero de los 101 bloques agregados. Si mira su transaccion coinbase veremos que es de valor 25. Esto se debe a que el monto de los coinbase se va reduciendo a la mitad cada 150 bloques (en regtest)
+
+Expliquez la balance de Charly.
+charly getbalance
+0.00000000
+esta en 0, supongo que es porque el wallet no esta indexando los bloques correctamente, entonces no sabe cuantos bitcoins tiene charly realmente, supone que en los bloques que recibe apenas se conecta no va a hacer transacciones propias supongo.
+
+Expliquez la balance de Charly
+charly getbalance
+12.50000000
+Nuevamente corresponde solo al primero de estos bloques, es decir, que tambien nos perdimos el coinbase de los otros 100 bloques creados antes de eliminar la carpeta
+
+
+3.1
+Interaction avec la blockchain en Python
+Installation d’un environnement pour Python
+
+Pourquoi avoir fait tout ça alors qu’il suffisait de demander à Github ?
+No tengo la mas puta idea, igual ni anduvo esto asi que no parece muy importante
+
+Que constate-t-on ?
+Otra vez no lo se, tampoco anda por el mismo error
+
+Question
+La transaction que nous venons de créer a des frais importants. Réfléchissez à une solution plus
+économique permettant de tirer partie de la blockchain pour prouver l’existence d’une donnée sans
+l’embarquer dans la blockchain.
+En lugar de mandar todos los bytes de la imagen podriamos enviar solo su sha256sum
+
+
+Question
+Nous venons de voir comment interagir avec les instances Bitcoin ainsi que comment construire des
+transactions depuis Python. Réfléchissez à présent à la manière de mettre en œuvre une double
+dépense.
+Creando transaciones en base a la misma transaccion de entrada en distintos nodos de la red, para que ambos lo agreguen a un bloque
+
+
+
+
+
